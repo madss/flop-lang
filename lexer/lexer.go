@@ -45,6 +45,18 @@ func (l *Lexer) lex() (token.Token, error) {
 				return token.Token{}, err
 			}
 			continue
+		case l.current == '/':
+			if err := l.mustAdvance(); err != nil {
+				return token.Token{}, err
+			}
+			if l.current != '/' {
+				return token.Token{}, l.error("unexpected character '%c'. Expected '/'", l.current)
+			}
+			for l.current != '\n' {
+				if err := l.advance(); err != nil {
+					return token.Token{}, err
+				}
+			}
 		case l.current == '(':
 			return l.advanceAndReturn(token.LPar, "")
 		case l.current == ')':
