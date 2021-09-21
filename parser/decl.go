@@ -44,6 +44,12 @@ func (p *Parser) parseFunction() (*ast.FnDeclaration, error) {
 		return nil, err
 	}
 
+	args, err := p.parseIdentifierList()
+	if err != nil {
+		return nil, err
+	}
+	fn.Args = args
+
 	if err := p.expect(token.RPar, nil, "expected ')'"); err != nil {
 		return nil, err
 	}
@@ -63,4 +69,30 @@ func (p *Parser) parseFunction() (*ast.FnDeclaration, error) {
 	}
 
 	return &fn, nil
+}
+
+func (p *Parser) parseIdentifierList() ([]token.Token, error) {
+	var ids []token.Token
+	for {
+		var id token.Token
+		ok, err := p.accept(token.Ident, &id)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			if len(ids) > 0 {
+				return nil, p.error("expected identifier")
+			}
+			break
+		}
+		ids = append(ids, id)
+		ok, err = p.accept(token.Comma, nil)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			break
+		}
+	}
+	return ids, nil
 }

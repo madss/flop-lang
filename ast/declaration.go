@@ -10,6 +10,7 @@ type Declaration interface {
 
 type FnDeclaration struct {
 	Name token.Token
+	Args []token.Token
 	Body []Statement
 }
 

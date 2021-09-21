@@ -32,17 +32,13 @@ func (p *Parser) parseExpressionList() ([]ast.Expression, error) {
 
 func (p *Parser) parseExpression() (ast.Expression, error) {
 	switch p.current.Type {
+	case token.Ident:
+		return &ast.IdExpression{Value: p.current}, p.advance()
+	case token.Num:
+		return &ast.NumExpression{Value: p.current}, p.advance()
 	case token.Str:
-		return p.parseString()
+		return &ast.StrExpression{Value: p.current}, p.advance()
 	default:
 		return nil, nil
 	}
-}
-
-func (p *Parser) parseString() (*ast.StrExpression, error) {
-	var str ast.StrExpression
-	if err := p.expect(token.Str, &str.Value, "expected string literal"); err != nil {
-		return nil, err
-	}
-	return &str, nil
 }

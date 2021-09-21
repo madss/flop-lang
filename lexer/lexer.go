@@ -65,14 +65,35 @@ func (l *Lexer) lex() (token.Token, error) {
 			return l.advanceAndReturn(token.LCur, "")
 		case l.current == '}':
 			return l.advanceAndReturn(token.RCur, "")
+		case l.current == ',':
+			return l.advanceAndReturn(token.Comma, "")
 		case l.current == ';':
 			return l.advanceAndReturn(token.Semi, "")
+		case l.current >= '0' && l.current <= '9':
+			return l.lexNumber()
 		case l.current == '"':
 			return l.lexString()
 		case unicode.IsLetter(l.current) || l.current == '_':
 			return l.lexKeywordOrIdentifier()
 		default:
 			return token.Token{}, l.error("unepected character '%c'", l.current)
+		}
+	}
+}
+
+func (l *Lexer) lexNumber() (token.Token, error) {
+	var num strings.Builder
+	num.WriteRune(l.current)
+
+	for {
+		if err := l.mustAdvance(); err != nil {
+			return token.Token{}, err
+		}
+		switch {
+		case l.current >= '0' && l.current <= '9':
+			num.WriteRune(l.current)
+		default:
+			return l.token(token.Num, num.String()), nil
 		}
 	}
 }

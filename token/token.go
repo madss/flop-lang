@@ -11,6 +11,7 @@ type Type int
 const (
 	Eof Type = iota
 	Ident
+	Num
 	Str
 	Fn
 	LPar

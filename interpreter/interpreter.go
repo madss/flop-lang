@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/madss/flop-lang/ast"
 	"github.com/madss/flop-lang/interpreter/env"
@@ -35,7 +36,7 @@ func (i *Interpreter) interpretDeclarations(env *env.Environment, decls []ast.De
 	for _, decl := range decls {
 		switch decl := decl.(type) {
 		case *ast.FnDeclaration:
-			i.env.Set(decl.Name.Value, Fn{decl.Body})
+			i.env.Set(decl.Name.Value, Fn{decl.Args, decl.Body})
 		default:
 			panic("unepxected declaration")
 		}
@@ -74,6 +75,12 @@ func (i *Interpreter) interpretStatement(env *env.Environment, stmt ast.Statemen
 			return fn(args...)
 		case Fn:
 			childEnv := env.Child()
+			if len(fn.Args) != len(args) {
+				return i.error(stmt.Name, "expected %d arguments", len(args))
+			}
+			for i := range args {
+				childEnv.Set(fn.Args[i].Value, args[i])
+			}
 			return i.interpretStatements(childEnv, fn.Body)
 		default:
 			return i.error(stmt.Name, "%s is not a function", stmt.Name.Value)
@@ -86,6 +93,14 @@ func (i *Interpreter) interpretStatement(env *env.Environment, stmt ast.Statemen
 
 func (i *Interpreter) interpretExpression(env *env.Environment, expr ast.Expression) (interface{}, error) {
 	switch expr := expr.(type) {
+	case *ast.IdExpression:
+		return env.Get(expr.Value.Value), nil
+	case *ast.NumExpression:
+		val, err := strconv.Atoi(expr.Value.Value)
+		if err != nil {
+			panic(err)
+		}
+		return val, nil
 	case *ast.StrExpression:
 		return expr.Value.Value, nil
 	default:
@@ -94,5 +109,5 @@ func (i *Interpreter) interpretExpression(env *env.Environment, expr ast.Express
 }
 
 func (i *Interpreter) error(token token.Token, format string, args ...interface{}) error {
-	return fmt.Errorf("%s (%s:%s)", fmt.Sprintf(format, args...), token.Location.Name, token.Location.Line)
+	return fmt.Errorf("%s (%s:%d)", fmt.Sprintf(format, args...), token.Location.Name, token.Location.Line)
 }
