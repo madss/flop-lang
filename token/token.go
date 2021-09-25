@@ -20,6 +20,10 @@ const (
 	RCur
 	Comma
 	Semi
+	Plus
+	Minus
+	Multiply
+	Divide
 )
 
 type Location struct {

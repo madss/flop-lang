@@ -23,3 +23,10 @@ type StrExpression struct {
 }
 
 func (e *StrExpression) isExpression() {}
+
+type BinaryExpression struct {
+	Operator    token.Token
+	Left, Right Expression
+}
+
+func (e *BinaryExpression) isExpression() {}

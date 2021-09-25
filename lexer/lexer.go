@@ -69,6 +69,14 @@ func (l *Lexer) lex() (token.Token, error) {
 			return l.advanceAndReturn(token.Comma, "")
 		case l.current == ';':
 			return l.advanceAndReturn(token.Semi, "")
+		case l.current == '+':
+			return l.advanceAndReturn(token.Plus, "")
+		case l.current == '-':
+			return l.advanceAndReturn(token.Minus, "")
+		case l.current == '*':
+			return l.advanceAndReturn(token.Multiply, "")
+		case l.current == '/':
+			return l.advanceAndReturn(token.Divide, "")
 		case l.current >= '0' && l.current <= '9':
 			return l.lexNumber()
 		case l.current == '"':

@@ -103,6 +103,35 @@ func (i *Interpreter) interpretExpression(env *env.Environment, expr ast.Express
 		return val, nil
 	case *ast.StrExpression:
 		return expr.Value.Value, nil
+	case *ast.BinaryExpression:
+		left, err := i.interpretExpression(env, expr.Left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := i.interpretExpression(env, expr.Right)
+		if err != nil {
+			return nil, err
+		}
+		leftVal, leftOk := left.(int)
+		rightVal, rightOk := right.(int)
+		if !leftOk || !rightOk {
+			return nil, i.error(expr.Operator, "performing binary operation on non-integer")
+		}
+		switch expr.Operator.Type {
+		case token.Plus:
+			return leftVal + rightVal, nil
+		case token.Minus:
+			return leftVal - rightVal, nil
+		case token.Multiply:
+			return leftVal * rightVal, nil
+		case token.Divide:
+			if rightVal == 0 {
+				return nil, i.error(expr.Operator, "dividing with zero")
+			}
+			return leftVal / rightVal, nil
+		default:
+			panic("unknown binary operator")
+		}
 	default:
 		panic("unexpected expression")
 	}
