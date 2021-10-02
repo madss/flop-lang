@@ -9,14 +9,17 @@ const (
 	lowest = iota
 	term
 	factor
+	call
 )
 
 func precedence(t token.Token) int {
 	switch t.Type {
-	case token.Plus, token.Minus:
-		return term
+	case token.LPar:
+		return call
 	case token.Multiply, token.Divide:
 		return factor
+	case token.Plus, token.Minus:
+		return term
 	default:
 		return lowest
 	}
@@ -66,6 +69,7 @@ func (p *Parser) parseExpression(prec int) (ast.Expression, error) {
 		return nil, err
 	}
 
+out:
 	for prec < precedence(p.current) {
 		switch p.current.Type {
 		case token.Plus, token.Minus, token.Multiply, token.Divide:
@@ -73,8 +77,13 @@ func (p *Parser) parseExpression(prec int) (ast.Expression, error) {
 			if err != nil {
 				return nil, err
 			}
+		case token.LPar:
+			expr, err = p.parseCall(expr)
+			if err != nil {
+				return nil, err
+			}
 		default:
-			break
+			break out
 		}
 	}
 	return expr, nil
@@ -100,4 +109,24 @@ func (p *Parser) parseInfix(left ast.Expression) (ast.Expression, error) {
 		Left:     left,
 		Right:    right,
 	}, nil
+}
+
+func (p *Parser) parseCall(fn ast.Expression) (ast.Expression, error) {
+	if err := p.advance(); err != nil {
+		return nil, err
+	}
+
+	call := ast.CallExpression{Fn: fn}
+
+	args, err := p.parseExpressionList()
+	if err != nil {
+		return nil, err
+	}
+	call.Args = args
+
+	if err := p.expect(token.RPar, nil, "expected ')'"); err != nil {
+		return nil, err
+	}
+
+	return &call, nil
 }

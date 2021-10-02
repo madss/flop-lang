@@ -23,8 +23,12 @@ func (i *Interpreter) Interpret(decls []ast.Declaration) error {
 	if err := i.interpretDeclarations(i.env, decls); err != nil {
 		return err
 	}
-	callMain := ast.CallStatement{
-		Name: token.Token{Type: token.Ident, Value: "main"},
+	callMain := ast.ExpressionStatement{
+		Expr: &ast.CallExpression{
+			Fn: &ast.IdExpression{
+				token.Token{Type: token.Ident, Value: "main"},
+			},
+		},
 	}
 	if err := i.interpretStatement(i.env, &callMain); err != nil {
 		return err
@@ -55,35 +59,10 @@ func (i *Interpreter) interpretStatements(env *env.Environment, stmts []ast.Stat
 
 func (i *Interpreter) interpretStatement(env *env.Environment, stmt ast.Statement) error {
 	switch stmt := stmt.(type) {
-	case *ast.CallStatement:
-		fn := env.Get(stmt.Name.Value)
-		if fn == nil {
-			return i.error(stmt.Name, "couldn't find function %s", stmt.Name.Value)
-		}
-
-		var args []interface{}
-		for _, arg := range stmt.Args {
-			arg, err := i.interpretExpression(env, arg)
-			if err != nil {
-				return err
-			}
-			args = append(args, arg)
-		}
-
-		switch fn := fn.(type) {
-		case Builtin:
-			return fn(args...)
-		case Fn:
-			childEnv := env.Child()
-			if len(fn.Args) != len(args) {
-				return i.error(stmt.Name, "expected %d arguments", len(args))
-			}
-			for i := range args {
-				childEnv.Set(fn.Args[i].Value, args[i])
-			}
-			return i.interpretStatements(childEnv, fn.Body)
-		default:
-			return i.error(stmt.Name, "%s is not a function", stmt.Name.Value)
+	case *ast.ExpressionStatement:
+		_, err := i.interpretExpression(env, stmt.Expr)
+		if err != nil {
+			return err
 		}
 	default:
 		panic("unexpected statement")
@@ -103,6 +82,36 @@ func (i *Interpreter) interpretExpression(env *env.Environment, expr ast.Express
 		return val, nil
 	case *ast.StrExpression:
 		return expr.Value.Value, nil
+	case *ast.CallExpression:
+		fn, err := i.interpretExpression(env, expr.Fn)
+		if err != nil {
+			return nil, err
+		}
+
+		var args []interface{}
+		for _, arg := range expr.Args {
+			arg, err := i.interpretExpression(env, arg)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, arg)
+		}
+
+		switch fn := fn.(type) {
+		case Builtin:
+			return fn(args...), nil
+		case Fn:
+			childEnv := env.Child()
+			if len(fn.Args) != len(args) {
+				return nil, i.error(expr.Fn.Token(), "expected %d arguments", len(args))
+			}
+			for i := range args {
+				childEnv.Set(fn.Args[i].Value, args[i])
+			}
+			return nil, i.interpretStatements(childEnv, fn.Body)
+		default:
+			return nil, i.error(expr.Fn.Token(), "Calling non-function")
+		}
 	case *ast.BinaryExpression:
 		left, err := i.interpretExpression(env, expr.Left)
 		if err != nil {

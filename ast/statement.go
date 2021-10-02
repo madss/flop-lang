@@ -1,14 +1,11 @@
 package ast
 
-import "github.com/madss/flop-lang/token"
-
 type Statement interface {
 	isStatement()
 }
 
-type CallStatement struct {
-	Name token.Token
-	Args []Expression
+type ExpressionStatement struct {
+	Expr Expression
 }
 
-func (s *CallStatement) isStatement() {}
+func (s *ExpressionStatement) isStatement() {}
